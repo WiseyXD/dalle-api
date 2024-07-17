@@ -8,7 +8,7 @@ const path = require("path");
 const fs = require("fs");
 const cors = require("cors");
 const FormData = require("form-data");
-const sharp = require("sharp");
+const Jimp = require("jimp");
 const app = express();
 const PORT = process.env.PORT || 4000;
 
@@ -51,7 +51,7 @@ app.post("/api/generate-image", async (req, res) => {
     }
 });
 
-app.post("/api/inpaint-image", upload.single("image"), async (req, res) => {
+app.post("/api/inpaint-image2", upload.single("image"), async (req, res) => {
     const { prompt } = req.body;
     const image = req.file;
     const maskBasePath = "";
@@ -103,7 +103,7 @@ app.post("/api/inpaint-image", upload.single("image"), async (req, res) => {
     }
 });
 
-app.post("/api/inpaint-image2", upload.single("image"), async (req, res) => {
+app.post("/api/inpaint-image", upload.single("image"), async (req, res) => {
     const { prompt } = req.body;
     const image = req.file;
 
@@ -115,18 +115,18 @@ app.post("/api/inpaint-image2", upload.single("image"), async (req, res) => {
     const maskPath = `./uploads/${imageFilename}_mask.png`;
 
     try {
-        // Create mask using Sharp
-        const { width, height } = await sharp(image.path).metadata();
-        await sharp({
-            create: {
-                width: width,
-                height: height,
-                channels: 4, // Use 4 channels for RGBA
-                background: { r: 0, g: 0, b: 0, alpha: 0 },
-            },
-        })
-            .png()
-            .toFile(maskPath);
+        // Load the uploaded image
+        const jimpImage = await Jimp.read(image.path);
+
+        // Create a blank mask image with the same dimensions as the uploaded image
+        const mask = new Jimp(
+            jimpImage.bitmap.width,
+            jimpImage.bitmap.height,
+            0x00000000
+        );
+
+        // Save the mask image
+        await mask.writeAsync(maskPath);
 
         const formData = new FormData();
         formData.append("prompt", prompt);
